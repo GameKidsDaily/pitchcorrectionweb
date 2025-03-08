@@ -5,9 +5,9 @@ import { useDropzone } from "react-dropzone";
 import { Card, CardContent } from "@/components/ui/card";
 import { estimatePitch } from "pitchy";
 
-export default function AlternativePianoRoll() {
+export default function FrequencyBasedRoll() {
   const [audioBuffer, setAudioBuffer] = useState(null);
-  const [notes, setNotes] = useState([]);
+  const [frequencies, setFrequencies] = useState([]);
 
   const onDrop = async (acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -16,11 +16,11 @@ export default function AlternativePianoRoll() {
     reader.onload = async () => {
       const buffer = await Tone.getContext().rawContext.decodeAudioData(reader.result);
       setAudioBuffer(buffer);
-      analyzeNotes(buffer);
+      analyzeFrequencies(buffer);
     };
   };
 
-  const analyzeNotes = async (buffer) => {
+  const analyzeFrequencies = async (buffer) => {
     const audioContext = new AudioContext();
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
@@ -28,6 +28,7 @@ export default function AlternativePianoRoll() {
     source.connect(analyser);
     analyser.fftSize = 2048;
     const dataArray = new Float32Array(analyser.fftSize);
+    
     source.start();
 
     setTimeout(() => {
@@ -35,7 +36,10 @@ export default function AlternativePianoRoll() {
       const [pitch, clarity] = estimatePitch(dataArray, audioContext.sampleRate);
       
       if (clarity > 0.8 && pitch > 0) {
-        setNotes((prevNotes) => [...prevNotes, { frequency: pitch, position: pitch % 100 * 5 }]);
+        setFrequencies((prevFrequencies) => [...prevFrequencies, { 
+          frequency: pitch, 
+          position: (pitch % 500) * 2 // Adjusted for visualization
+        }]);
       }
     }, 500);
   };
@@ -51,15 +55,17 @@ export default function AlternativePianoRoll() {
         </CardContent>
       </Card>
       <div className="relative w-[800px] h-[600px] border border-gray-300 bg-white overflow-hidden">
-        {notes.map((note, index) => (
-          <div
-            key={index}
-            className="absolute left-0 w-full h-6 bg-blue-500 opacity-75"
-            style={{ top: `${note.position}px` }}
-          >
-            🎵 {note.frequency.toFixed(2)} Hz
-          </div>
-        ))}
+        <div className="relative w-full h-full">
+          {frequencies.map((freq, index) => (
+            <div
+              key={index}
+              className="absolute left-0 w-full h-6 bg-blue-500 opacity-50"
+              style={{ top: `${freq.position}px` }}
+            >
+              {freq.frequency.toFixed(2)} Hz
+            </div>
+          ))}
+        </div>
       </div>
       <div className="flex space-x-4">
         <Button className="mt-4">Apply Correction</Button>
