@@ -1,9 +1,10 @@
+// Declare variables for audio processing
 let audioContext, analyser, audioBuffer, audioSource;
 let pitchShift = 0; // Pitch shift in cents
 let canvas = document.getElementById('canvas');
 let canvasContext = canvas.getContext('2d');
 
-// Audio file upload handler
+// File upload handler
 function handleFileUpload(event) {
   let file = event.target.files[0];
   if (file) {
@@ -96,3 +97,7 @@ document.getElementById('pitchShift').addEventListener('input', function(event) 
   pitchShift = parseInt(event.target.value, 10);
   document.getElementById('pitchValue').textContent = pitchShift;
 });
+
+// Ensure the functions are attached to the HTML elements
+document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+document.querySelector('button').addEventListener('click', processAudio);
