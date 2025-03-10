@@ -46,19 +46,19 @@ function renderWaveform() {
 // Start processing audio and pitch detection
 function processAudio() {
   if (!audioBuffer) return;
-  
+
   analyser = audioContext.createAnalyser();
   audioSource = audioContext.createBufferSource();
   audioSource.buffer = audioBuffer;
   audioSource.connect(analyser);
   analyser.connect(audioContext.destination);
-  
+
   audioSource.start();
-  
+
   analyser.fftSize = 2048;
   let bufferLength = analyser.frequencyBinCount;
   let dataArray = new Uint8Array(bufferLength);
-  
+
   detectPitch(dataArray);
 }
 
@@ -100,4 +100,7 @@ document.getElementById('pitchShift').addEventListener('input', function(event) 
 
 // Ensure the functions are attached to the HTML elements
 document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-document.querySelector('button').addEventListener('click', processAudio);
+document.querySelector('button').addEventListener('click', function() {
+  console.log("Processing audio...");
+  processAudio();
+});
