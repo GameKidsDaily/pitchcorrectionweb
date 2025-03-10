@@ -3,12 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pitch Correction Tool</title>
+  <title>Manual Pitch Correction Tool</title>
   <style>
-    body { font-family: Arial, sans-serif; }
-    #controls { margin: 20px; }
-    label { font-size: 16px; }
-    input[type="range"] { width: 300px; }
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    #controls {
+      margin: 20px;
+    }
+
+    #waveform {
+      width: 100%;
+      height: 200px;
+      background-color: #f0f0f0;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 200px;
+    }
+
+    label {
+      font-size: 18px;
+    }
+
+    input[type="range"] {
+      width: 300px;
+    }
+
+    #fileInput {
+      margin: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -21,9 +60,15 @@
     <span id="pitchValue">0</span> Cents
   </div>
 
-  <div>
-    <button onclick="startMic()">Start Microphone</button>
+  <!-- Upload audio file -->
+  <input type="file" id="fileInput" accept="audio/*" onchange="handleFileUpload(event)">
+
+  <!-- Display waveform or pitch graph -->
+  <div id="waveform">
+    <canvas id="canvas"></canvas>
   </div>
+
+  <button onclick="processAudio()">Process Audio</button>
 
   <script src="script.js"></script>
 </body>
