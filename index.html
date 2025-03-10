@@ -1,76 +1,30 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import * as Tone from "tone";
-import { useDropzone } from "react-dropzone";
-import { Card, CardContent } from "@/components/ui/card";
-import { estimatePitch } from "pitchy";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pitch Correction Tool</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    #controls { margin: 20px; }
+    label { font-size: 16px; }
+    input[type="range"] { width: 300px; }
+  </style>
+</head>
+<body>
 
-export default function FrequencyBasedRoll() {
-  const [audioBuffer, setAudioBuffer] = useState(null);
-  const [frequencies, setFrequencies] = useState([]);
+  <h1>Pitch Correction Tool</h1>
+  
+  <div id="controls">
+    <label for="pitchShift">Pitch Shift (Cents):</label>
+    <input type="range" id="pitchShift" min="-100" max="100" value="0">
+    <span id="pitchValue">0</span> Cents
+  </div>
 
-  const onDrop = async (acceptedFiles) => {
-    const file = acceptedFiles[0];
-    const reader = new FileReader();
-    reader.readAsArrayBuffer(file);
-    reader.onload = async () => {
-      const buffer = await Tone.getContext().rawContext.decodeAudioData(reader.result);
-      setAudioBuffer(buffer);
-      analyzeFrequencies(buffer);
-    };
-  };
+  <div>
+    <button onclick="startMic()">Start Microphone</button>
+  </div>
 
-  const analyzeFrequencies = async (buffer) => {
-    const audioContext = new AudioContext();
-    const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    const analyser = audioContext.createAnalyser();
-    source.connect(analyser);
-    analyser.fftSize = 2048;
-    const dataArray = new Float32Array(analyser.fftSize);
-    
-    source.start();
-
-    setTimeout(() => {
-      analyser.getFloatTimeDomainData(dataArray);
-      const [pitch, clarity] = estimatePitch(dataArray, audioContext.sampleRate);
-      
-      if (clarity > 0.8 && pitch > 0) {
-        setFrequencies((prevFrequencies) => [...prevFrequencies, { 
-          frequency: pitch, 
-          position: (pitch % 500) * 2 // Adjusted for visualization
-        }]);
-      }
-    }, 500);
-  };
-
-  const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: "audio/*" });
-
-  return (
-    <div className="p-4 space-y-4">
-      <Card>
-        <CardContent className="p-4 text-center border-dashed border-2" {...getRootProps()}>
-          <input {...getInputProps()} />
-          <p>Drag & drop an audio file here, or click to select one</p>
-        </CardContent>
-      </Card>
-      <div className="relative w-[800px] h-[600px] border border-gray-300 bg-white overflow-hidden">
-        <div className="relative w-full h-full">
-          {frequencies.map((freq, index) => (
-            <div
-              key={index}
-              className="absolute left-0 w-full h-6 bg-blue-500 opacity-50"
-              style={{ top: `${freq.position}px` }}
-            >
-              {freq.frequency.toFixed(2)} Hz
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="flex space-x-4">
-        <Button className="mt-4">Apply Correction</Button>
-        <Button className="mt-4" onClick={() => Tone.start()}>Preview</Button>
-      </div>
-    </div>
-  );
-}
+  <script src="script.js"></script>
+</body>
+</html>
