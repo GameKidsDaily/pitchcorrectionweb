@@ -1,71 +1,98 @@
-// script.js
-let audioContext;
-let analyser;
-let microphone;
+let audioContext, analyser, audioBuffer, audioSource;
 let pitchShift = 0; // Pitch shift in cents
+let canvas = document.getElementById('canvas');
+let canvasContext = canvas.getContext('2d');
 
-// Initialize Web Audio API
-function startMic() {
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+// Audio file upload handler
+function handleFileUpload(event) {
+  let file = event.target.files[0];
+  if (file) {
+    let reader = new FileReader();
+    reader.onload = function(e) {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      analyser = audioContext.createAnalyser();
-      
-      microphone = audioContext.createMediaStreamSource(stream);
-      microphone.connect(analyser);
-      
-      analyser.fftSize = 2048;
-      analyser.smoothingTimeConstant = 0.8;
-      
-      // Start pitch detection
-      detectPitch();
-    }).catch(err => {
-      alert('Microphone access denied!');
-    });
-  } else {
-    alert('Your browser does not support audio input.');
+      audioContext.decodeAudioData(e.target.result, function(buffer) {
+        audioBuffer = buffer;
+        renderWaveform();
+      });
+    };
+    reader.readAsArrayBuffer(file);
   }
 }
 
-// Pitch detection function using analyser node
-function detectPitch() {
-  const bufferLength = analyser.frequencyBinCount;
-  const dataArray = new Uint8Array(bufferLength);
+// Render waveform for uploaded audio
+function renderWaveform() {
+  let data = audioBuffer.getChannelData(0); // Get the first channel data (mono)
+  let width = canvas.width;
+  let height = canvas.height;
+  let step = Math.ceil(data.length / width);
+  let amp = height / 2;
+
+  canvasContext.fillStyle = 'lightgray';
+  canvasContext.clearRect(0, 0, width, height);
+
+  for (let i = 0; i < width; i++) {
+    let min = 1.0;
+    let max = -1.0;
+    for (let j = 0; j < step; j++) {
+      let datum = data[i * step + j];
+      if (datum < min) min = datum;
+      if (datum > max) max = datum;
+    }
+    canvasContext.fillRect(i, (1 + min) * amp, 1, Math.max(1, (max - min) * amp));
+  }
+}
+
+// Start processing audio and pitch detection
+function processAudio() {
+  if (!audioBuffer) return;
   
+  analyser = audioContext.createAnalyser();
+  audioSource = audioContext.createBufferSource();
+  audioSource.buffer = audioBuffer;
+  audioSource.connect(analyser);
+  analyser.connect(audioContext.destination);
+  
+  audioSource.start();
+  
+  analyser.fftSize = 2048;
+  let bufferLength = analyser.frequencyBinCount;
+  let dataArray = new Uint8Array(bufferLength);
+  
+  detectPitch(dataArray);
+}
+
+// Pitch Detection and Correction
+function detectPitch(dataArray) {
   analyser.getByteFrequencyData(dataArray);
+
+  // For simplicity, we'll just use a basic pitch detection logic for now
+  // You could integrate Pitchy or other algorithms for better accuracy
+  const maxFreq = Math.max(...dataArray);
+  const detectedPitch = mapFreqToPitch(maxFreq);  // Mapping the max frequency to pitch
   
-  // Estimate the pitch using pitch detection algorithms (or a library)
-  const pitch = estimatePitch(dataArray);  // Simplified, can be replaced with a real algorithm
+  // Apply pitch shift
+  const shiftedPitch = applyPitchShift(detectedPitch);
   
-  if (pitch !== null) {
-    applyPitchShift(pitch);
-  }
-  
-  requestAnimationFrame(detectPitch);
+  // Log pitch information for now
+  console.log(`Detected Pitch: ${detectedPitch} Hz, Shifted Pitch: ${shiftedPitch} Hz`);
+
+  // You could render a pitch graph here if desired (omitted for simplicity)
+  requestAnimationFrame(() => detectPitch(dataArray));
 }
 
-// Apply pitch shift using an audio buffer source (simplified)
-function applyPitchShift(pitch) {
+// Convert frequency to pitch (simplified for now)
+function mapFreqToPitch(frequency) {
+  return 440 * Math.pow(2, (Math.log2(frequency / 440))); // Simplified A4 pitch mapping
+}
+
+// Apply pitch shift (in cents)
+function applyPitchShift(frequency) {
   const cents = pitchShift;
-  const frequency = pitch * Math.pow(2, cents / 1200); // Pitch shift formula
-
-  // Apply pitch shifting logic (in this case, it's simplified)
-  // You could use an actual pitch shifting effect here to manipulate the sound
-  
-  console.log(`Detected pitch: ${pitch} Hz, shifted by ${cents} cents to ${frequency} Hz`);
+  return frequency * Math.pow(2, cents / 1200); // Pitch shift formula
 }
 
-// Adjust pitch shift from range slider
-document.getElementById('pitchShift').addEventListener('input', function (event) {
+// Handle pitch shift slider changes
+document.getElementById('pitchShift').addEventListener('input', function(event) {
   pitchShift = parseInt(event.target.value, 10);
   document.getElementById('pitchValue').textContent = pitchShift;
 });
-
-// Simple pitch detection logic (can be replaced with a better algorithm)
-function estimatePitch(frequencyData) {
-  // Example logic for estimating pitch (placeholder)
-  // Use frequency data from analyser to estimate the pitch
-  const maxFreq = Math.max(...frequencyData);
-  const pitch = maxFreq; // This is simplified; real pitch detection would be more complex
-  return pitch;
-}
